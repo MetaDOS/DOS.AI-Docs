@@ -150,6 +150,58 @@ DOSafe reads/writes `dosafe.*` schema tables directly with `SUPABASE_SERVICE_ROL
 
 ---
 
+## Unified Billing (Planned — DOS.Me owns)
+
+### Ownership
+
+| Responsibility | Owner |
+|----------------|-------|
+| Subscription management (create, upgrade, cancel) | DOS.Me |
+| Payment processing (Stripe webhooks) | DOS.Me |
+| Credit top-up flows | DOS.Me |
+| `public.subscriptions` table (new) | DOS.Me |
+| `public.billing_accounts` (existing) | DOS.Me |
+| Credit deduction per API call | DOSafe / DOS.AI (write to Supabase directly) |
+
+Products **never call DOS.Me per request** — they read/write Supabase directly to avoid latency.
+
+### Two billing models
+
+**Consumer subscription** — for end users of DOSafe, DOS.AI, DOS.Me products:
+- Monthly plan with included quota
+- One subscription unlocks all consumer products
+- Quota enforced per product via `dosafe.client_quota` / `dosai.dosafe_usage`
+
+**Credits (B2B / developer)** — for API key holders (Bexly, Rate.Box, developers):
+- Buy credits, spend per request, no monthly reset
+- `dosafe.api_keys` linked to `public.billing_accounts`
+- Deduction written to `public.credit_transactions`
+
+### Credit pricing (DOSafe)
+
+| Endpoint | Credits/request |
+|----------|----------------|
+| `/check`, `/check/bulk` (per entity) | 1 |
+| `/url-check` | 1 |
+| `/entity-check` | 1 |
+| `/detect` (AI text) | 10 |
+| `/detect-image` | 20 |
+
+### Tables needed from DOS.Me
+
+```sql
+-- public schema (DOS.Me to create)
+public.subscriptions (
+  id, profile_id, plan, status,
+  period_start, period_end, stripe_subscription_id
+)
+
+-- public.billing_accounts already exists
+-- public.credit_transactions already exists
+```
+
+---
+
 ## Safety Data Flow
 
 ```
