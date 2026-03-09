@@ -1,4 +1,4 @@
-# DOSafe Partner API — DOS Shield Gateway
+# DOSafe API
 
 > **Base URL:** `https://app.dosafe.io/api/v1`
 >
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The DOSafe Partner API is the unified safety gateway for the DOS ecosystem. It aggregates threat intelligence from multiple independent sources and returns a weighted risk verdict for any entity.
+The DOSafe API is the unified safety gateway for the DOS ecosystem. It aggregates threat intelligence from multiple independent sources and returns a weighted risk verdict for any entity.
 
 ### Data Sources
 
@@ -37,7 +37,7 @@ Scores are computed by weighted aggregation of signals — no single source dete
 ## Authentication
 
 ```
-X-Api-Key: dsk_partner_xxxx...
+X-Api-Key: dsk_xxxx...
 ```
 
 ### Scopes
