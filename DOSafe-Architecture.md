@@ -1,6 +1,6 @@
 # DOSafe — System Architecture
 
-**Updated:** 2026-03-10
+**Updated:** 2026-03-14
 **Status:** AI Detection COMPLETE. Threat Intel Pipeline COMPLETE (1.52M+ entries, 13 sources). Risk Scoring V2 COMPLETE. Chrome Extension Protection v0.5.4 COMPLETE. Audio/Video TODO.
 
 **Implementation ownership:** Claude is the primary coding agent for architecture changes; this document is the handoff/reference source for Claude-first implementation.
@@ -103,7 +103,7 @@ Written to by: DOS-Me Trust API (`/trust/flags/:id/attest`). Read by: DOSafe (`d
 | `api.dos.ai` | Qwen3.5-35B-A3B-GPTQ-Int4 | RTX Pro 6000 (96GB) | Scorer — LLM rubric + image analysis |
 | `inference-ref.dos.ai` | Qwen3-8B base | RTX 5090 (32GB) | Observer — Binoculars cross-entropy |
 
-Both models are natively multimodal (text + image). Auth: `DOS_INFERENCE_API_KEY`.
+Both models are natively multimodal (text + image). Auth: `INTERNAL_API_KEY` via `api.dos.ai` gateway (bypasses billing). Fallback: Alibaba Cloud `qwen3.5-flash` when vLLM is unavailable.
 
 ---
 
@@ -143,6 +143,38 @@ DOS.AI exception: uses Firebase Auth (legacy) + Supabase JWT for billing
 ### DOS.AI calls api.dos.ai (Worker)
 
 DOS.AI dashboard manages API keys via `api.dos.ai/dashboard/*` (internal `X-Dashboard-Secret`). Enterprise clients use `dos_sk_*` keys to call `api.dos.ai/v1/*` which routes to inference.
+
+### Billing Architecture — Two-Layer Model
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Application Layer (request-based billing)                │
+│                                                          │
+│  dosafe-telegram  →  consume_quota() per request         │
+│  dosafe.io web    →  dosafe_usage per request            │
+│  chrome extension →  anonymous quota (IP-based)          │
+│                                                          │
+│  Knows: who the user is, what tier/plan they're on       │
+│  Charges: per request, regardless of token count         │
+└──────────────────────┬───────────────────────────────────┘
+                       ↓
+┌──────────────────────────────────────────────────────────┐
+│  api.dos.ai Gateway (token-based billing)                │
+│                                                          │
+│  INTERNAL_API_KEY  →  skip billing (app layer handles)   │
+│  dos_sk_xxx        →  deductBalance per token            │
+│                                                          │
+│  Knows: key type, token usage, model used                │
+│  Charges: per token for external API key holders         │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Key principle:** Application-layer products (Telegram bot, web app, extension) handle their own user-facing billing via Supabase RPC (`consume_quota`). They access `api.dos.ai` with `INTERNAL_API_KEY` which bypasses the gateway's billing — because billing already happened upstream.
+
+External API consumers (`dos_sk_xxx` keys) are billed per-token at the gateway level, since they call `api.dos.ai` directly without an application layer.
+
+**LLM Fallback & Cost Tracking:**
+When self-hosted vLLM is unavailable, `entity-web-search.ts` falls back to paid providers (Alibaba Cloud qwen3.5-flash). Fallback usage is logged to Vercel console as structured JSON (`event: llm_fallback_used`) with token count and estimated cost for internal cost monitoring. User-facing billing remains request-based regardless of which LLM backend served the request.
 
 ### DOSafe consumes Supabase directly
 
@@ -419,8 +451,8 @@ Input URL
   └── 5. Cache runtime result (fire-and-forget, 7-day TTL)
 
   Extension fast path (X-Client-Type: extension):
-    Skips: WHOIS, web search, LLM, on-chain, session check, quota
-    Only: DB lookup + Safe Browsing + trusted domain + typosquatting
+    Skips: Safe Browsing API, WHOIS, web search, LLM, on-chain, session check, quota
+    Only: DB lookup + trusted domain whitelist + typosquatting detection + cached scores
 ```
 
 **Response:** `riskScore`, `riskLevel`, `confidence`, `riskSignals[]`, `webAnalysis`, `llmSummary`, `typosquatting`, `threatIntel`, `onChain`
