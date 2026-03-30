@@ -4,11 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'changelog.md'
+      - 'CHANGELOG.md'
   workflow_dispatch:
-
-env:
-  SUPABASE_URL: https://gulptwduchsjcsbndmua.supabase.co
 
 jobs:
   sync:
@@ -16,108 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Parse changelog.md and sync to Supabase
-        run: |
-          node << 'SCRIPT'
-          const fs = require('fs');
-          const https = require('https');
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-          const content = fs.readFileSync('changelog.md', 'utf8');
-          const lines = content.split('\n');
-
-          const typeMap = {
-            'New': 'feature',
-            'Improved': 'improvement',
-            'Fixed': 'fix',
-            'Breaking': 'breaking',
-          };
-          const productMap = {
-            'Dashboard': 'dashboard',
-            'Agents': 'agents',
-            'Integrations': 'integrations',
-            'Platform': 'platform',
-            'DOSClaw': 'dosclaw',
-            'API Gateway': 'gateway',
-            'DOSafe': 'dosafe',
-            'Inference': 'inference',
-          };
-
-          const entries = [];
-          let currentDate = null;
-          let currentType = null;
-
-          for (const line of lines) {
-            // ## March 27, 2026
-            const dateMatch = line.match(/^## (.+)$/);
-            if (dateMatch) {
-              const d = new Date(dateMatch[1].trim());
-              currentDate = isNaN(d) ? null : d.toISOString().split('T')[0];
-              currentType = null;
-              continue;
-            }
-
-            // ### New / Fixed / Improved / Breaking
-            const typeMatch = line.match(/^### (.+)$/);
-            if (typeMatch) {
-              currentType = typeMap[typeMatch[1].trim()] || null;
-              continue;
-            }
-
-            // - `Product` **Title** — Description
-            const entryMatch = line.match(/^- `([^`]+)` \*\*([^*]+)\*\* — (.+)$/);
-            if (entryMatch && currentDate && currentType) {
-              const product = productMap[entryMatch[1]] || entryMatch[1].toLowerCase();
-              entries.push({
-                date: currentDate,
-                product,
-                type: currentType,
-                title: entryMatch[2].trim(),
-                description: entryMatch[3].trim(),
-                source: 'auto',
-              });
-            }
-          }
-
-          if (entries.length === 0) {
-            console.log('No entries parsed');
-            process.exit(0);
-          }
-
-          console.log(`Parsed ${entries.length} entries`);
-
-          // Call Supabase RPC
-          const body = JSON.stringify({
-            p_entries: entries,
-            p_write_key: process.env.CHANGELOG_WRITE_KEY,
-          });
-
-          const url = new URL(`${process.env.SUPABASE_URL}/rest/v1/rpc/insert_changelog`);
-          const options = {
-            hostname: url.hostname,
-            path: url.pathname,
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': process.env.SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
-              'Content-Profile': 'dosai',
-              'Content-Length': Buffer.byteLength(body),
-            },
-          };
-
-          const req = https.request(options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-              console.log(`Supabase response (${res.statusCode}):`, data);
-              process.exit(res.statusCode >= 200 && res.statusCode < 300 ? 0 : 1);
-            });
-          });
-          req.on('error', (e) => { console.error(e); process.exit(1); });
-          req.write(body);
-          req.end();
-          SCRIPT
+      - name: Sync changelog
         env:
-          SUPABASE_URL: ${{ env.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          CHANGELOG_WRITE_KEY: ${{ secrets.CHANGELOG_WRITE_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          VLLM_API_KEY: ${{ secrets.DOS_API_KEY }}
+          VLLM_URL: https://inference.dos.ai
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: deno run --allow-net --allow-read --allow-env scripts/sync-changelog.ts
