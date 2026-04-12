@@ -21,10 +21,14 @@ Pricing is calculated per **1 million tokens** (both input and output).
 
 | Model | Input Price (per 1M tokens) | Output Price (per 1M tokens) |
 | ----- | --------------------------- | ---------------------------- |
-| **Qwen3.5-35B-A3B** | $0.15 | $0.15 |
-| **Llama 3.3 70B** | $0.20 | $0.20 |
+| **Qwen3.5-35B-A3B** (default) | $0.15 | $0.15 |
+| **Llama 4 Maverick 17B-128E** | $0.17 | $0.66 |
+| **Llama 4 Scout 17B-16E** | $0.11 | $0.38 |
 | **DeepSeek V3** | $0.25 | $0.25 |
+| **Llama 3.3 70B** | $0.20 | $0.20 |
 | **Llama 3.1 8B** | $0.05 | $0.05 |
+
+> Prices are DB-driven and may be updated. Check the [dashboard](https://app.dos.ai/models) or `GET /v1/catalog` for the latest pricing.
 
 ### What is a Token?
 

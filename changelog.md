@@ -9,6 +9,18 @@ Products: `dosclaw`, `dashboard`, `gateway`, `dosafe`, `inference`
 
 ---
 
+## 2026-04-12
+
+- **feature** [gateway] Cache-Aware Sticky Routing -- DOSRouter pins model to session when context exceeds 3K tokens (single message) or 5K tokens (cumulative) to maximize provider-side prefix cache hits; sticky TTL is per-provider (5min for API providers, 10min for self-hosted vLLM)
+- **feature** [gateway] Per-Provider Cache TTL -- Sticky routing TTL matches each provider's prefix cache lifetime: Anthropic/OpenAI/DeepSeek (5 min), vLLM/self-hosted (10 min); configurable via `providerCacheTTLMs` map
+- **fix** [dashboard] Cross-Account Logout Loop -- Logout now passes `prompt=login` to id.dos.me to force login form display instead of auto-SSO, preventing cross-account session loops
+
+## 2026-04-11
+
+- **feature** [gateway] DOSRouter Upstream Sync to v0.12.146 -- 17/19 ClawRouter releases ported; includes usage cost breakdown, eco/premium tier fallback, session pinning, agentic 3-state, model roster updates
+- **feature** [gateway] DOSRouter Full Port Expansion -- Wallet module (EVM + Solana), payment module (x402 protocol), image generation endpoint, full CLI (serve, classify, models, stats, logs, cache, report, wallet, chain, doctor)
+- **feature** [gateway] DOSRouter Open-Sourced -- Standalone Go LLM router at github.com/DOS/DOSRouter with 15-dimension scoring, tier-based routing, structured fallback chains
+
 ## 2026-04-08
 
 - **feature** [dosclaw] OpenClaw v2026.4.5 — Major engine upgrade with video/music generation, enhanced memory, and improved channel experience

@@ -8,15 +8,16 @@
 
 ## Overview
 
-The DOSafe API is the unified safety gateway for the DOS ecosystem. A single API key grants access to all DOSafe services — entity/URL safety checks, AI text/image detection, and community reporting — with scopes controlling which capabilities are available.
+The DOSafe API is the unified safety gateway for the DOS ecosystem. A single API key grants access to all DOSafe services — entity/URL safety checks, AI text/image/video/audio detection, face and voice verification, and community reporting — with scopes controlling which capabilities are available.
 
 ### Data Sources (Safety Check)
 
 | Source | Weight | Description |
 |--------|--------|-------------|
-| DOSafe DB | Highest | 1.2M+ entries from 11 scrapers (phishing, scam, malware, wallets) |
+| DOSafe DB | Highest | 3.93M+ entries from 19 scrapers (phishing, scam, malware, wallets) |
 | DOS Chain | High | Immutable on-chain attestations via EAS |
 | DOS.Me Identity | Moderate | Member trust score, verified providers, flagged status |
+| Web Analysis | Moderate | Real-time web search + LLM-powered risk analysis |
 
 **Architecture:** DOSafe is the safety engine and public gateway. DOS.Me is an identity data provider — external services call DOSafe, not DOS.Me.
 
@@ -49,9 +50,11 @@ Keys are stored as SHA-256 hashes in `dosafe.api_keys`. Plaintext is never persi
 | `check` | `POST /check` |
 | `bulk` | `POST /check/bulk` |
 | `report` | `POST /report` |
-| `detect` | `POST /detect`, `POST /detect-image` |
+| `detect` | `POST /detect`, `POST /detect-image`, `POST /detect-video`, `POST /detect-audio` |
 | `url-check` | `POST /url-check` |
 | `entity-check` | `POST /entity-check` |
+| `face` | `POST /face/enroll`, `POST /face/verify` |
+| `voice` | `POST /voice/enroll`, `POST /voice/verify` |
 
 A key can have multiple scopes. Contact the DOSafe team to provision a key with required scopes.
 
@@ -268,6 +271,59 @@ AI image detection. Combines C2PA, EXIF/DCT metadata, reverse image search, and 
     "exif": "no_camera_metadata",
     "reverseSearch": "not_found"
   }
+}
+```
+
+---
+
+### `POST /detect-video`
+
+**Scope:** `detect`
+
+AI video detection. Uses a 7-layer pipeline: frame-level AI detection, temporal consistency analysis, audio-visual synchronization, and LLM visual reasoning.
+
+**Request:** `multipart/form-data` with `video` field (MP4/MOV/WEBM, max 100MB), or JSON `{ "url": "..." }`.
+
+**Response:**
+```json
+{
+  "aiProbability": 78,
+  "verdict": "AI",
+  "confidence": "medium",
+  "signals": {
+    "frameAnalysis": 0.82,
+    "temporalConsistency": 0.71,
+    "audioSync": 0.65,
+    "llmVisual": 0.85
+  },
+  "framesAnalyzed": 24,
+  "duration": 15.2
+}
+```
+
+---
+
+### `POST /detect-audio`
+
+**Scope:** `detect`
+
+AI audio/voice detection. BEATs + mHuBERT ensemble for detecting AI-generated speech and voice clones.
+
+**Request:** `multipart/form-data` with `audio` field (WAV/MP3/OGG/FLAC, max 50MB), or JSON `{ "url": "..." }`.
+
+**Response:**
+```json
+{
+  "aiProbability": 91,
+  "verdict": "AI",
+  "confidence": "high",
+  "signals": {
+    "beats": 0.93,
+    "mhubert": 0.89,
+    "ensemble": 0.91
+  },
+  "hasSpeech": true,
+  "duration": 8.5
 }
 ```
 
