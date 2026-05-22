@@ -45,17 +45,13 @@ All DOSafe endpoints use the base URL `https://api.dos.ai/v1/dosafe`.
 
 ## Authentication
 
-DOSafe endpoints accept authentication via the `X-Api-Key` header:
-
-```
-X-Api-Key: your_api_key_here
-```
-
-Alternatively, if you already have a DOS AI API key (`dos_sk_*`), you can use the standard `Authorization` header:
+DOSafe endpoints authenticate with a dos.ai platform key (`dos_sk_*`) via the standard `Authorization` header. Create one self-serve at [app.dos.ai/api-keys](https://app.dos.ai/api-keys) - the same key works across the whole dos.ai platform and every DOSafe route.
 
 ```
 Authorization: Bearer dos_sk_...
 ```
+
+> Legacy DOSafe-only partner keys (`X-Api-Key: dsk_...`) still work during the transition but are being phased out - new integrations should use `dos_sk_`.
 
 Anonymous access is available with a limited daily quota for evaluation purposes.
 
@@ -88,7 +84,7 @@ Scores are computed by weighted aggregation of signals from multiple data source
 
 ```bash
 curl -X POST https://api.dos.ai/v1/dosafe/check \
-  -H "X-Api-Key: your_api_key" \
+  -H "Authorization: Bearer dos_sk_your_key" \
   -H "Content-Type: application/json" \
   -d '{
     "entityType": "domain",
@@ -116,7 +112,7 @@ curl -X POST https://api.dos.ai/v1/dosafe/check \
 
 ```bash
 curl -X POST https://api.dos.ai/v1/dosafe/url-check \
-  -H "X-Api-Key: your_api_key" \
+  -H "Authorization: Bearer dos_sk_your_key" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://suspicious-site.com/login"
@@ -127,7 +123,7 @@ curl -X POST https://api.dos.ai/v1/dosafe/url-check \
 
 ```bash
 curl -X POST https://api.dos.ai/v1/dosafe/check/bulk \
-  -H "X-Api-Key: your_api_key" \
+  -H "Authorization: Bearer dos_sk_your_key" \
   -H "Content-Type: application/json" \
   -d '{
     "entities": [

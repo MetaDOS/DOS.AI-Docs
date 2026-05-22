@@ -1,14 +1,14 @@
 # DOSafe API
 
-> **Base URL:** `https://app.dosafe.io/api`
+> **Base URL:** `https://api.dos.ai/v1/dosafe`
 >
-> **Auth:** All endpoints require `X-Api-Key` header. One key covers all DOSafe services.
+> **Auth:** `Authorization: Bearer dos_sk_...` - a single dos.ai platform key (create one at [app.dos.ai/api-keys](https://app.dos.ai/api-keys)) covers all DOSafe services.
 
 ---
 
 ## Overview
 
-The DOSafe API is the unified safety gateway for the DOS ecosystem. A single API key grants access to all DOSafe services — entity/URL safety checks, AI text/image/video/audio detection, face and voice verification, and community reporting — with scopes controlling which capabilities are available.
+The DOSafe API is the unified safety gateway for the DOS ecosystem. A single dos.ai platform key grants access to all DOSafe services - entity/URL safety checks, AI text/image/video detection, face and voice verification, and community reporting.
 
 ### Data Sources (Safety Check)
 
@@ -19,44 +19,33 @@ The DOSafe API is the unified safety gateway for the DOS ecosystem. A single API
 | DOS.Me Identity | Moderate | Member trust score, verified providers, flagged status |
 | Web Analysis | Moderate | Real-time web search + LLM-powered risk analysis |
 
-**Architecture:** DOSafe is the safety engine and public gateway. DOS.Me is an identity data provider — external services call DOSafe, not DOS.Me.
+**Architecture:** DOSafe is the safety engine and public gateway. DOS.Me is an identity data provider - external services call DOSafe, not DOS.Me.
 
 ### Risk Score → Level
 
 | Score | Level |
 |-------|-------|
-| 0–19 | `safe` |
-| 20–49 | `low` |
-| 50–74 | `medium` |
-| 75–89 | `high` |
-| 90–100 | `critical` |
+| 0-19 | `safe` |
+| 20-49 | `low` |
+| 50-74 | `medium` |
+| 75-89 | `high` |
+| 90-100 | `critical` |
 
-Scores are computed by weighted aggregation of signals — no single source determines the verdict alone.
+Scores are computed by weighted aggregation of signals - no single source determines the verdict alone.
 
 ---
 
 ## Authentication
 
 ```
-X-Api-Key: dsk_xxxx...
+Authorization: Bearer dos_sk_xxxx...
 ```
 
-Keys are stored as SHA-256 hashes in `dosafe.api_keys`. Plaintext is never persisted after provisioning.
+Use a dos.ai platform key, created self-serve at [app.dos.ai/api-keys](https://app.dos.ai/api-keys). The same key works across the whole dos.ai platform (LLM inference, embeddings) and every DOSafe route - no separate provisioning step. Keys are stored as SHA-256 hashes; plaintext is shown once at creation and never persisted.
 
-### Scopes
+> **Migrating from `dsk_` partner keys?** The legacy `X-Api-Key: dsk_...` scheme (DOSafe-only partner keys) is being phased out in favour of the unified `dos_sk_` Bearer key. Existing `dsk_` keys keep working during the transition; new integrations should use `dos_sk_`.
 
-| Scope | Endpoints |
-|-------|-----------|
-| `check` | `POST /check` |
-| `bulk` | `POST /check/bulk` |
-| `report` | `POST /report` |
-| `detect` | `POST /detect`, `POST /detect-image`, `POST /detect-video`, `POST /detect-audio` |
-| `url-check` | `POST /url-check` |
-| `entity-check` | `POST /entity-check` |
-| `face` | `POST /face/enroll`, `POST /face/verify` |
-| `voice` | `POST /voice/enroll`, `POST /voice/verify` |
-
-A key can have multiple scopes. Contact the DOSafe team to provision a key with required scopes.
+A `dos_sk_` key has full access to every DOSafe route. There is no per-scope provisioning - issue a key and call any endpoint below.
 
 ---
 
@@ -118,12 +107,12 @@ Single entity safety check. Runs DB lookup + on-chain query + DOS.Me identity in
 }
 ```
 
-**Example — Bexly: check wallet before transaction:**
+**Example - Bexly: check wallet before transaction:**
 ```typescript
-const res = await fetch('https://app.dosafe.io/api/check', {
+const res = await fetch('https://api.dos.ai/v1/dosafe/check', {
   method: 'POST',
   headers: {
-    'X-Api-Key': process.env.DOSAFE_API_KEY,
+    'Authorization': `Bearer ${process.env.DOS_API_KEY}`,
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({ entityType: 'wallet', entityId: recipientAddress }),
@@ -206,7 +195,7 @@ Submit a safety report for an entity. Reports are staged in `raw_imports` for re
 | `entityType` | ✓ | See entity types table |
 | `entityId` | ✓ | Raw value |
 | `category` | ✓ | `phishing`, `scam`, `malware`, `fraud`, `spam`, `impersonation`, `other` |
-| `riskScore` | ✓ | Integer 0–100 |
+| `riskScore` | ✓ | Integer 0-100 |
 | `description` | ✗ | Human-readable context |
 
 **Response (201):**
@@ -301,31 +290,7 @@ AI video detection. Uses a 7-layer pipeline: frame-level AI detection, temporal 
 }
 ```
 
----
-
-### `POST /detect-audio`
-
-**Scope:** `detect`
-
-AI audio/voice detection. BEATs + mHuBERT ensemble for detecting AI-generated speech and voice clones.
-
-**Request:** `multipart/form-data` with `audio` field (WAV/MP3/OGG/FLAC, max 50MB), or JSON `{ "url": "..." }`.
-
-**Response:**
-```json
-{
-  "aiProbability": 91,
-  "verdict": "AI",
-  "confidence": "high",
-  "signals": {
-    "beats": 0.93,
-    "mhubert": 0.89,
-    "ensemble": 0.91
-  },
-  "hasSpeech": true,
-  "duration": 8.5
-}
-```
+> **Audio / voice-clone detection** is served by the Call ID voice anti-spoof analyzer under the `/voice` group (`POST /voice/analyze`), powered by the MamBo-3 (XLSR-MamBo Hydra-N3) model, not a standalone `/detect-audio` endpoint. See the Voice Verification section.
 
 ---
 
@@ -399,7 +364,7 @@ Signals are the raw evidence contributing to a risk score. Returned in `signals[
 | `onchain_flagged_phishing` | On-chain attestation: phishing | +85 |
 | `onchain_flagged_scam` | On-chain attestation: scam | +70 |
 | `onchain_high_risk` | On-chain risk score ≥ 80 | +60 |
-| `onchain_medium_risk` | On-chain risk score 50–79 | +35 |
+| `onchain_medium_risk` | On-chain risk score 50-79 | +35 |
 | `onchain_verified_legitimate` | On-chain: verified legitimate | −40 |
 | `onchain_trusted` | On-chain risk score < 20 | −30 |
 
@@ -419,9 +384,11 @@ Signals are the raw evidence contributing to a risk score. Returned in `signals[
 
 | Status | Reason |
 |--------|--------|
-| `401 Unauthorized` | Missing or invalid `X-Api-Key` |
-| `403 Forbidden` | Key valid but lacks required scope |
 | `400 Bad Request` | Validation error |
+| `401 Unauthorized` | Missing, invalid, or revoked API key |
+| `402 Payment Required` | Free tier exhausted and credit balance empty - top up at app.dos.ai/billing |
+| `403 Forbidden` | Key lacks the required scope (applies to legacy `dsk_` keys only; `dos_sk_` keys have full access) |
+| `429 Too Many Requests` | Daily free-tier limit reached and overage billing temporarily unavailable - retry shortly |
 | `500 Internal Server Error` | Lookup failed |
 
 ---
@@ -432,17 +399,32 @@ If you were previously using `api.dos.me/trust/check`, migrate to DOSafe:
 
 | Old | New |
 |-----|-----|
-| `POST api.dos.me/trust/check` | `POST app.dosafe.io/api/check/bulk` |
+| `POST api.dos.me/trust/check` | `POST api.dos.ai/v1/dosafe/check/bulk` |
 | `GET api.dos.me/trust/member` | Included in `/check` response as `member` field |
-| `POST api.dos.me/trust/flags` | `POST app.dosafe.io/api/report` |
+| `POST api.dos.me/trust/flags` | `POST api.dos.ai/v1/dosafe/report` |
 
 The DOS.Me Trust API endpoints are deprecated and will be removed on **2026-11-01**.
 
 ---
 
+## Pricing & Quota
+
+- **Free tier:** 100 calls/day per key.
+- **Over the free tier:** calls are billed per-call from your dos.ai credit balance (no hard cutoff once you have credits):
+
+  | Group | Endpoints | Price / call |
+  |-------|-----------|--------------|
+  | Lookup & Threat Intel | `/check`, `/check/bulk`, `/url-check`, `/entity-check`, `/report`, `/webhooks` | $0.0010 |
+  | AI Detection | `/detect`, `/detect-image`, `/detect-video`, `/detect-plagiarism`, `/detect-doc-forgery` | $0.0018 |
+  | Biometric eKYC | `/voice/*`, `/face/*`, `/identity/*` | $0.0090 |
+
+- Top up and manage your balance at [app.dos.ai/billing](https://app.dos.ai/billing). Larger top-ups get up to 30% more credit.
+- Full pricing: [dos.ai/pricing](https://dos.ai/pricing).
+
+When the free tier is exhausted and the balance is empty, calls return `402 Payment Required`.
+
+---
+
 ## Getting API Keys
 
-Contact the DOSafe team with:
-1. Your product name
-2. Required scopes (`check`, `bulk`, `report`, `detect`, `url-check`, `entity-check`)
-3. Expected daily volume
+Create a key self-serve at [app.dos.ai/api-keys](https://app.dos.ai/api-keys) - it works immediately across every DOSafe route (and the rest of the dos.ai platform). No scope selection or manual provisioning. For dedicated quota, on-prem eKYC deployment, or enterprise contracts, [contact sales](https://dos.ai/pricing).
