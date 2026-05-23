@@ -1,0 +1,58 @@
+name: Claude Code Review
+
+# Auto-reviews every docs PR for accuracy, broken links, consistency, and
+# house style. Mirrors the reviewer in the DOS.AI code repo, retuned for a
+# documentation repo (no build/tests to reason about). Uses the org secret
+# CLAUDE_CODE_OAUTH_TOKEN.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            This is a documentation repository (GitBook Markdown for the
+            DOS.AI developer docs). Review this pull request for:
+
+            - Factual accuracy: do API base URLs, endpoint paths, auth
+              schemes, request/response shapes, and code samples match the
+              actual product? Flag anything that looks stale or invented.
+            - Broken or wrong links: internal page links and external URLs.
+            - Consistency: terminology, endpoint naming, and auth examples
+              should agree across pages (e.g. an endpoint documented one way
+              on the overview must match the reference page).
+            - House style: user-facing text uses ASCII hyphens only - flag
+              any em-dash (—) or en-dash (–).
+            - Completeness: new endpoints/parameters documented; deprecated
+              ones marked.
+
+            Use the repository's README / SUMMARY.md for structure and any
+            CLAUDE.md for conventions. Be constructive and specific (cite the
+            file + line). Do NOT rewrite the docs; just review.
+
+            Use `gh pr comment` with your Bash tool to leave your review as a
+            comment on the PR.
+
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
