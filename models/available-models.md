@@ -37,7 +37,9 @@ response = client.chat.completions.create(
 
 | Model | Provider | Dimensions | Model ID |
 | ----- | -------- | ---------- | -------- |
-| **Qwen3-Embedding-4B AWQ** | Alibaba / Self-hosted | 2560 | `qwen3-embedding-4b` |
+| **Qwen3-Embedding-4B** | Alibaba / Self-hosted | 2560 | `qwen3-embedding-4b` |
+
+See the [Embeddings API reference](../api-reference/embeddings.md) for the request/response format and code examples.
 
 ## Model Details
 
