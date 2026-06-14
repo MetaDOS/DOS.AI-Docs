@@ -15,6 +15,7 @@
 * [Streaming](guides/streaming.md)
 * [Function Calling](guides/function-calling.md)
 * [Structured Outputs](guides/structured-outputs.md)
+* [Bring Your Own Key (BYOK)](guides/byok.md)
 
 ## Models
 
@@ -24,6 +25,8 @@
 ## API Reference
 
 * [Chat Completions](api-reference/chat-completions.md)
+* [Embeddings](api-reference/embeddings.md)
+* [Media Generation](api-reference/media-generation.md)
 * [Models](api-reference/models.md)
 
 ## DOSafe
