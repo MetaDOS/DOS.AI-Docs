@@ -17,6 +17,7 @@
 * [Structured Outputs](guides/structured-outputs.md)
 * [Bring Your Own Key (BYOK)](guides/byok.md)
 * [Guardrails](guides/guardrails.md)
+* [Response Caching](guides/caching.md)
 
 ## Models
 
