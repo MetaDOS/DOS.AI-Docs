@@ -4,7 +4,7 @@ When an API request fails, the response includes an HTTP status code and a JSON 
 
 ## Error Response Format
 
-All errors follow this structure:
+Most errors follow this structure:
 
 ```json
 {
@@ -44,6 +44,21 @@ The request is malformed or contains invalid parameters.
 - Check that all required fields are present
 - Ensure parameter values are within documented ranges
 - Use the [Models API](../api-reference/models.md) to confirm valid model IDs
+
+### Guardrails Block (`guardrails_blocked`)
+
+If you opt into [Guardrails](../guides/guardrails.md) with the `X-DOS-Guardrails: block` header and sensitive data (PII) is detected in your input, the request is rejected with a `400` and this body:
+
+```json
+{
+  "error": {
+    "message": "Request blocked by guardrails: sensitive data (PII) detected in the input.",
+    "type": "guardrails_blocked"
+  }
+}
+```
+
+To mask the PII and let the request through instead, use `X-DOS-Guardrails: redact`. See [Guardrails](../guides/guardrails.md) for details.
 
 ---
 
