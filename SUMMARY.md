@@ -16,6 +16,7 @@
 * [Function Calling](guides/function-calling.md)
 * [Structured Outputs](guides/structured-outputs.md)
 * [Bring Your Own Key (BYOK)](guides/byok.md)
+* [Guardrails](guides/guardrails.md)
 
 ## Models
 
