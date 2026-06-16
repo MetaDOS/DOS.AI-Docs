@@ -327,7 +327,7 @@ Products: `dosclaw`, `dashboard`, `gateway`, `dosafe`, `inference`
 ## 2026-03-29
 
 - **feature** [dosclaw] Instance ID Badge - Each agent now shows a short instance ID (e.g. #568bc2) in the header for quick identification when reporting issues
-- **fix** [dosclaw] Open Console Instant Load - Console button now appears immediately on page load instead of after a 4–5s delay
+- **fix** [dosclaw] Open Console Instant Load - Console button now appears immediately on page load instead of after a 4-5s delay
 - **fix** [dosclaw] Provisioning Progress Bar - Redeploy now shows the same step-by-step progress bar as initial deploy
 - **fix** [dosclaw] Agent Health Stability - Gateway marked healthy only after 3 consecutive successful health checks, preventing premature "Open Console" during boot
 - **feature** [dashboard] Language Switcher - Added support for Chinese, Japanese, Korean, Thai, and Indonesian in addition to Vietnamese and English
