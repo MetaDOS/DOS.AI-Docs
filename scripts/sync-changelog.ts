@@ -51,8 +51,11 @@ function parseChangelog(content: string): ChangelogEntry[] {
     }
     if (!currentDate) continue;
 
+    // Title and Description are separated by the first " - " (spaced hyphen).
+    // A title must not contain a spaced hyphen; compound hyphens (e.g. "dos-ai")
+    // are unaffected because the delimiter requires whitespace on both sides.
     const entryMatch = line.match(
-      /^- \*\*(\w+)\*\* \[(\w+)\] (.+?)(?:\s*—\s*(.+))?$/
+      /^- \*\*(\w+)\*\* \[(\w+)\] (.+?)(?:\s+-\s+(.+))?$/
     );
     if (entryMatch) {
       entries.push({
@@ -141,7 +144,7 @@ const PRODUCT_NAMES: Record<string, string> = {
 async function rewriteBatch(entries: ChangelogEntry[]): Promise<ChangelogEntry[]> {
   const items = entries.map((e, i) => {
     const product = PRODUCT_NAMES[e.product] || e.product;
-    const raw = e.description ? `${e.title} — ${e.description}` : e.title;
+    const raw = e.description ? `${e.title} - ${e.description}` : e.title;
     return `${i + 1}. [${e.type}] ${product}: ${raw}`;
   }).join("\n");
 
